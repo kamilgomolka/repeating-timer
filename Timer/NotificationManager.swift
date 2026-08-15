@@ -83,7 +83,11 @@ final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificatio
 
         let content = UNMutableNotificationContent()
         content.title = "Repeating Timer"
-        content.body = "\(minutes) min passed."
+        if minutes == 1 {
+            content.body = "\(minutes) minute passed."
+        } else {
+            content.body = "\(minutes) minutes passed."
+        }
         content.sound = .default
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: delay, repeats: false)

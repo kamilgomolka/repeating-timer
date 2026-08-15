@@ -60,7 +60,7 @@ final class TimerViewModel {
         if let savedMinutes = defaults.object(forKey: DefaultsKey.customMinutes) as? Int {
             customMinutesText = String(savedMinutes)
         } else {
-            customMinutesText = "45"
+            customMinutesText = "10"
         }
 
         // Clear any reminder left scheduled from a previous session (e.g. the
