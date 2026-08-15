@@ -22,7 +22,7 @@ enum IntervalOption: Int, CaseIterable, Codable, Identifiable {
         case .fifteen: "15"
         case .thirty: "30"
         case .sixty: "60"
-        case .custom: "Other"
+        case .custom: "Inny"
         }
     }
 }

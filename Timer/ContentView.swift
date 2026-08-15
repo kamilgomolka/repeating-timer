@@ -12,7 +12,7 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Picker("Interval", selection: $viewModel.selectedOption) {
+            Picker("Interwał", selection: $viewModel.selectedOption) {
                 ForEach(IntervalOption.allCases) { option in
                     Text(option.label).tag(option)
                 }
@@ -25,7 +25,7 @@ struct ContentView: View {
             }
 
             if viewModel.selectedOption == .custom {
-                TextField("Minutes", text: $viewModel.customMinutesText)
+                TextField("Minuty", text: $viewModel.customMinutesText)
                     .textFieldStyle(.roundedBorder)
                     .multilineTextAlignment(.center)
                     .disabled(viewModel.isRunning)
@@ -48,7 +48,7 @@ struct ContentView: View {
             Button {
                 Task { await viewModel.toggle() }
             } label: {
-                Text(viewModel.isRunning ? "Stop" : "Start")
+                Text(viewModel.isRunning ? "Zatrzymaj" : "Uruchom")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
             }

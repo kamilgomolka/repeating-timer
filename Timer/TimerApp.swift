@@ -12,6 +12,11 @@ import SwiftUI
 final class TimerAppDelegate: NSObject, NSApplicationDelegate {
     var viewModel: TimerViewModel?
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // Install UNUserNotificationCenterDelegate before any reminder can fire.
+        _ = NotificationManager.shared
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         viewModel?.stop()
     }

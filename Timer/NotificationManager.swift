@@ -30,13 +30,16 @@ protocol ReminderScheduling {
 /// means the OS keeps firing the reminder on its own, independent of whether
 /// the app is actively ticking (e.g. right after the Mac wakes from sleep).
 @MainActor
-final class NotificationManager: ReminderScheduling {
+final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
 
     private let reminderIdentifier = "com.kamil.timer.interval-reminder"
     private let center = UNUserNotificationCenter.current()
 
-    private init() {}
+    private override init() {
+        super.init()
+        center.delegate = self
+    }
 
     func currentAuthorizationState() async -> NotificationAuthorizationState {
         Self.map(await center.notificationSettings().authorizationStatus)
@@ -57,7 +60,7 @@ final class NotificationManager: ReminderScheduling {
 
     func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {
         let content = UNMutableNotificationContent()
-        content.title = "Timer"
+        content.title = "Minutnik"
         content.body = "Minęło \(minutes) min."
         content.sound = .default
 
@@ -74,8 +77,22 @@ final class NotificationManager: ReminderScheduling {
     }
 
     func openSystemNotificationSettings() {
-        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") else { return }
-        NSWorkspace.shared.open(url)
+        let bundleId = Bundle.main.bundleIdentifier ?? ""
+        let candidates = [
+            "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(bundleId)",
+            "x-apple.systempreferences:com.apple.Notifications-Settings.extension",
+        ]
+        for candidate in candidates {
+            guard let url = URL(string: candidate) else { continue }
+            if NSWorkspace.shared.open(url) { return }
+        }
+    }
+
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .list, .sound]
     }
 
     private static func map(_ status: UNAuthorizationStatus) -> NotificationAuthorizationState {
