@@ -35,6 +35,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Choose repeat interval:")
                     .font(.title2).bold()
+                    .foregroundStyle(viewModel.isRunning ? Color.secondary : Color.primary)
 
                 Picker("Choose repeat interval", selection: $viewModel.selectedOption) {
                     ForEach(IntervalOption.allCases) { option in
@@ -54,6 +55,7 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Custom value (minutes):")
                         .font(.title2).bold()
+                        .foregroundStyle(viewModel.isRunning ? Color.secondary : Color.primary)
                     
                     TextField("Minutes", text: $viewModel.customMinutesText)
                         .textFieldStyle(.roundedBorder)
@@ -70,7 +72,7 @@ struct ContentView: View {
             }
 
             Text(viewModel.formattedTimeRemaining)
-                .font(.system(size: viewModel.isRunning ? 56 : 32, weight: .bold, design: .monospaced))
+                .font(.system(size: viewModel.isRunning ? 56 : 44, weight: .bold, design: .monospaced))
                 .monospacedDigit()
                 .foregroundStyle(viewModel.isRunning ? Color.primary : Color.secondary)
                 .frame(maxWidth: .infinity)
@@ -81,7 +83,7 @@ struct ContentView: View {
             Button {
                 Task { await viewModel.toggle() }
             } label: {
-                Text(viewModel.isRunning ? "Stop" : "Start")
+                Text(viewModel.isRunning ? "Stop" : "Start timer")
                     .font(.title2)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)

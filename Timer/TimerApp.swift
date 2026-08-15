@@ -36,7 +36,6 @@ struct TimerApp: App {
             ContentView(viewModel: viewModel)
                 .onAppear { appDelegate.viewModel = viewModel }
         }
-        .windowResizability(.contentSize)
-        .defaultSize(width: 320, height: 420)
+        .defaultSize(width: 320, height: 460)
     }
 }
