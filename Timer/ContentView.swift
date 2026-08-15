@@ -20,7 +20,6 @@ struct ContentView: View {
             }
         }
         .padding(.horizontal, 28)
-        .padding(.vertical, 32)
         .frame(width: 320)
         .onAppear {
             Task { await viewModel.handleWindowAppeared() }
@@ -34,12 +33,12 @@ struct ContentView: View {
     private var timerView: some View {
         VStack(spacing: 28) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Choose repeat interval")
-                    .font(.headline)
+                Text("Choose repeat interval:")
+                    .font(.title2).bold()
 
                 Picker("Choose repeat interval", selection: $viewModel.selectedOption) {
                     ForEach(IntervalOption.allCases) { option in
-                        Text(option.label).tag(option)
+                        Text(option.label).font(.title3).tag(option)
                     }
                 }
                 .labelsHidden()
@@ -52,17 +51,22 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             if viewModel.selectedOption == .custom {
-                TextField("Minutes", text: $viewModel.customMinutesText)
-                    .textFieldStyle(.roundedBorder)
-                    .multilineTextAlignment(.center)
-                    .disabled(viewModel.isRunning)
-                    .onChange(of: viewModel.customMinutesText) { _, newValue in
-                        let filtered = String(newValue.filter(\.isNumber).prefix(3))
-                        if filtered != newValue {
-                            viewModel.customMinutesText = filtered
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Custom value (minutes):")
+                        .font(.title2).bold()
+                    
+                    TextField("Minutes", text: $viewModel.customMinutesText)
+                        .textFieldStyle(.roundedBorder)
+                        .multilineTextAlignment(.leading)
+                        .disabled(viewModel.isRunning)
+                        .onChange(of: viewModel.customMinutesText) { _, newValue in
+                            let filtered = String(newValue.filter(\.isNumber).prefix(3))
+                            if filtered != newValue {
+                                viewModel.customMinutesText = filtered
+                            }
+                            viewModel.persistSelection()
                         }
-                        viewModel.persistSelection()
-                    }
+                }
             }
 
             Text(viewModel.formattedTimeRemaining)
@@ -78,6 +82,7 @@ struct ContentView: View {
                 Task { await viewModel.toggle() }
             } label: {
                 Text(viewModel.isRunning ? "Stop" : "Start")
+                    .font(.title2)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
             }
@@ -95,6 +100,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
             }
         }
+        .padding(.vertical, 32)
     }
 
     private var permissionDeniedView: some View {
@@ -115,11 +121,12 @@ struct ContentView: View {
             .controlSize(.large)
         }
         .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
         .accessibilityElement(children: .combine)
     }
 }
 
-#Preview("Timer") {
+#Preview("Repeating Timer") {
     ContentView(viewModel: TimerViewModel(reminderScheduler: PreviewReminderScheduler()))
 }
 
