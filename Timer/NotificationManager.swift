@@ -20,22 +20,34 @@ enum NotificationAuthorizationState {
 protocol ReminderScheduling {
     func currentAuthorizationState() async -> NotificationAuthorizationState
     func requestAuthorization() async -> NotificationAuthorizationState
-    func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int) async throws
+    func scheduleReminder(intervalSeconds: TimeInterval, minutes: Int) async throws
     func cancelReminder()
     func openSystemNotificationSettings()
 }
 
-/// Schedules a single, system-repeating local notification for the interval
-/// reminder. Using `repeats: true` on `UNTimeIntervalNotificationTrigger`
-/// means the OS keeps firing the reminder on its own, independent of whether
-/// the app is actively ticking (e.g. right after the Mac wakes from sleep).
+/// Schedules one-shot local notifications for the interval reminder, one per
+/// cycle, each with a fresh, unique identifier.
+///
+/// A single `UNTimeIntervalNotificationTrigger(repeats: true)` would be
+/// simpler, but macOS's Notification Center coalesces repeat deliveries that
+/// reuse the same request identifier: if the previous banner from that
+/// identifier hasn't been dismissed yet, the next occurrence silently updates
+/// it in place instead of alerting again (no banner, no sound). Rescheduling
+/// a brand-new request every cycle — driven by `TimerViewModel.tick()` on
+/// each rollover — sidesteps that entirely, since every occurrence is a
+/// distinct notification as far as the system is concerned.
 @MainActor
 final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
 
-    private let reminderIdentifier = "kamil.gomolka.Timer.interval-reminder"
-    private let legacyReminderIdentifier = "com.kamil.timer.interval-reminder"
+    /// Identifiers used by earlier builds, cleaned up defensively so a stale
+    /// pending/delivered notification from a previous version doesn't linger.
+    private let legacyReminderIdentifiers = [
+        "kamil.gomolka.Timer.interval-reminder",
+        "com.kamil.timer.interval-reminder",
+    ]
     private let center = UNUserNotificationCenter.current()
+    private var currentIdentifier: String?
 
     private override init() {
         super.init()
@@ -59,24 +71,35 @@ final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificatio
         return await currentAuthorizationState()
     }
 
-    func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {
+    func scheduleReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {
+        // Clear the previous cycle's notification (pending or already
+        // delivered/undismissed) before scheduling a fresh one.
+        clearCurrentIdentifier()
+
+        let identifier = UUID().uuidString
+
         let content = UNMutableNotificationContent()
         content.title = "Timer"
         content.body = "\(minutes) min passed."
         content.sound = .default
+        // Degrades gracefully to the default interruption level if the
+        // restricted time-sensitive entitlement isn't granted/approved.
+        content.interruptionLevel = .timeSensitive
 
-        // UNTimeIntervalNotificationTrigger requires >= 60s when repeating,
-        // which every selectable interval (min. 1 custom minute) satisfies.
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: intervalSeconds, repeats: true)
-        let request = UNNotificationRequest(identifier: reminderIdentifier, content: content, trigger: trigger)
+        // No repeats: true means no ≥60s minimum, and every occurrence is a
+        // distinct identifier, so it always alerts even if the previous one
+        // was never dismissed.
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: intervalSeconds, repeats: false)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
 
         try await center.add(request)
+        currentIdentifier = identifier
     }
 
     func cancelReminder() {
-        center.removePendingNotificationRequests(
-            withIdentifiers: [reminderIdentifier, legacyReminderIdentifier]
-        )
+        clearCurrentIdentifier()
+        center.removePendingNotificationRequests(withIdentifiers: legacyReminderIdentifiers)
+        center.removeDeliveredNotifications(withIdentifiers: legacyReminderIdentifiers)
     }
 
     func openSystemNotificationSettings() {
@@ -96,6 +119,13 @@ final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificatio
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
         [.banner, .list, .sound]
+    }
+
+    private func clearCurrentIdentifier() {
+        guard let identifier = currentIdentifier else { return }
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        center.removeDeliveredNotifications(withIdentifiers: [identifier])
+        currentIdentifier = nil
     }
 
     private static func map(_ status: UNAuthorizationStatus) -> NotificationAuthorizationState {

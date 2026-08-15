@@ -109,7 +109,7 @@ struct ContentView: View {
 private struct PreviewReminderScheduler: ReminderScheduling {
     func currentAuthorizationState() async -> NotificationAuthorizationState { .authorized }
     func requestAuthorization() async -> NotificationAuthorizationState { .authorized }
-    func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {}
+    func scheduleReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {}
     func cancelReminder() {}
     func openSystemNotificationSettings() {}
 }

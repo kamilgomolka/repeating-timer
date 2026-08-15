@@ -34,6 +34,7 @@ final class TimerViewModel {
     /// correct even after the Mac wakes from sleep.
     private var endDate: Date?
     private var intervalSeconds: TimeInterval = 0
+    private var activeMinutes: Int = 0
     private var tickTask: Task<Void, Never>?
 
     private let reminderScheduler: ReminderScheduling
@@ -134,13 +135,14 @@ final class TimerViewModel {
         await refreshNotificationAuthorization(requestIfUndetermined: true)
 
         do {
-            try await reminderScheduler.scheduleRepeatingReminder(intervalSeconds: seconds, minutes: minutes)
+            try await reminderScheduler.scheduleReminder(intervalSeconds: seconds, minutes: minutes)
         } catch {
             scheduleErrorMessage = "Couldn't schedule the notification."
             return
         }
 
         intervalSeconds = seconds
+        activeMinutes = minutes
         endDate = now().addingTimeInterval(seconds)
         timeRemaining = seconds
         isRunning = true
@@ -159,24 +161,31 @@ final class TimerViewModel {
     }
 
     /// Recomputes the remaining time from `endDate`. When a cycle elapses,
-    /// rolls `endDate` forward by whole intervals to stay in phase with the
-    /// repeating system notification, then keeps counting down to the next one.
-    func tick() {
+    /// rolls `endDate` forward by whole intervals and schedules a fresh,
+    /// uniquely-identified notification for the next one (see
+    /// `NotificationManager` for why it can't just be one repeating request).
+    func tick() async {
         guard let currentEndDate = endDate, intervalSeconds > 0 else { return }
 
         var nextEndDate = currentEndDate
         while nextEndDate.timeIntervalSince(now()) <= 0 {
             nextEndDate = nextEndDate.addingTimeInterval(intervalSeconds)
         }
+
+        let rolledOver = nextEndDate != currentEndDate
         endDate = nextEndDate
         timeRemaining = nextEndDate.timeIntervalSince(now())
+
+        if rolledOver {
+            try? await reminderScheduler.scheduleReminder(intervalSeconds: intervalSeconds, minutes: activeMinutes)
+        }
     }
 
     private func startTicking() {
         tickTask?.cancel()
         tickTask = Task { [weak self] in
             while let self, !Task.isCancelled {
-                self.tick()
+                await self.tick()
                 try? await Task.sleep(for: .seconds(1))
             }
         }

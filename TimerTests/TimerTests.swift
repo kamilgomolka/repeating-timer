@@ -29,7 +29,7 @@ private final class MockReminderScheduler: ReminderScheduling {
         return authorizationState
     }
 
-    func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {
+    func scheduleReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {
         if let scheduleError { throw scheduleError }
         scheduledIntervals.append((intervalSeconds, minutes))
     }
@@ -145,7 +145,7 @@ struct TimerTests {
         #expect(viewModel.timeRemaining == 15 * 60)
 
         currentDate.addTimeInterval(10)
-        viewModel.tick()
+        await viewModel.tick()
         #expect(viewModel.timeRemaining == 15 * 60 - 10)
     }
 
@@ -158,10 +158,44 @@ struct TimerTests {
 
         // Jump well past the first cycle's end.
         currentDate.addTimeInterval(15 * 60 + 20)
-        viewModel.tick()
+        await viewModel.tick()
 
         #expect(viewModel.isRunning)
         #expect(viewModel.timeRemaining == 15 * 60 - 20)
+    }
+
+    @Test func tickWithoutRolloverDoesNotRescheduleReminder() async {
+        var currentDate = Date(timeIntervalSince1970: 0)
+        let scheduler = MockReminderScheduler()
+        let viewModel = makeViewModel(scheduler: scheduler, now: { currentDate })
+        viewModel.selectedOption = .fifteen
+
+        await viewModel.start()
+        let scheduleCountAfterStart = scheduler.scheduledIntervals.count
+
+        currentDate.addTimeInterval(10)
+        await viewModel.tick()
+
+        #expect(scheduler.scheduledIntervals.count == scheduleCountAfterStart)
+    }
+
+    @Test func tickRolloverSchedulesFreshReminderForNextCycle() async {
+        var currentDate = Date(timeIntervalSince1970: 0)
+        let scheduler = MockReminderScheduler()
+        let viewModel = makeViewModel(scheduler: scheduler, now: { currentDate })
+        viewModel.selectedOption = .fifteen
+
+        await viewModel.start()
+        let scheduleCountAfterStart = scheduler.scheduledIntervals.count
+
+        // Cross into the next cycle.
+        currentDate.addTimeInterval(15 * 60 + 5)
+        await viewModel.tick()
+
+        let expectedSeconds: TimeInterval = 15 * 60
+        #expect(scheduler.scheduledIntervals.count == scheduleCountAfterStart + 1)
+        #expect(scheduler.scheduledIntervals.last?.seconds == expectedSeconds)
+        #expect(scheduler.scheduledIntervals.last?.minutes == 15)
     }
 
     @Test func persistedSelectionIsRestoredOnNextLaunch() {
