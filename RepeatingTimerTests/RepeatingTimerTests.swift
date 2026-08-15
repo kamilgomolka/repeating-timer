@@ -1,13 +1,13 @@
 //
-//  TimerTests.swift
-//  TimerTests
+//  RepeatingTimerTests.swift
+//  RepeatingTimerTests
 //
 //  Created by Kamil Gomolka on 15/08/2026.
 //
 
 import Foundation
 import Testing
-@testable import Timer
+@testable import RepeatingTimer
 
 private struct StubScheduleError: Error {}
 
@@ -49,7 +49,7 @@ private enum IsolatedDefaults {
 
     static func makeStore() -> UserDefaults {
         reap()
-        let suiteName = "TimerTests.\(UUID().uuidString)"
+        let suiteName = "RepeatingTimerTests.\(UUID().uuidString)"
         let store = UserDefaults(suiteName: suiteName)!
         store.removePersistentDomain(forName: suiteName)
         pendingSuiteNames.append(suiteName)
@@ -76,7 +76,7 @@ private func makeViewModel(
 
 @Suite(.serialized)
 @MainActor
-struct TimerTests {
+struct RepeatingTimerTests {
 
     @Test func startingWithFixedIntervalSchedulesReminderAndSetsRemaining() async {
         let scheduler = MockReminderScheduler()

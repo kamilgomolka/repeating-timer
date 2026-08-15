@@ -1,6 +1,6 @@
 //
 //  NotificationManager.swift
-//  Timer
+//  RepeatingTimer
 //
 //  Created by Kamil Gomolka on 15/08/2026.
 //
@@ -44,12 +44,6 @@ protocol ReminderScheduling {
 final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
 
-    /// Identifiers used by earlier builds, cleaned up defensively so a stale
-    /// pending/delivered notification from a previous version doesn't linger.
-    private let legacyReminderIdentifiers = [
-        "kamil.gomolka.Timer.interval-reminder",
-        "com.kamil.timer.interval-reminder",
-    ]
     private let center = UNUserNotificationCenter.current()
     private var currentIdentifier: String?
 
@@ -99,8 +93,6 @@ final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificatio
 
     func cancelReminder() {
         clearCurrentIdentifier()
-        center.removePendingNotificationRequests(withIdentifiers: legacyReminderIdentifiers)
-        center.removeDeliveredNotifications(withIdentifiers: legacyReminderIdentifiers)
     }
 
     func openSystemNotificationSettings() {

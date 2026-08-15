@@ -1,6 +1,6 @@
 //
-//  TimerApp.swift
-//  Timer
+//  RepeatingTimerApp.swift
+//  RepeatingTimer
 //
 //  Created by Kamil Gomolka on 15/08/2026.
 //
@@ -9,7 +9,7 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class TimerAppDelegate: NSObject, NSApplicationDelegate {
+final class RepeatingTimerAppDelegate: NSObject, NSApplicationDelegate {
     var viewModel: TimerViewModel?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
@@ -31,8 +31,8 @@ final class TimerAppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
-struct TimerApp: App {
-    @NSApplicationDelegateAdaptor(TimerAppDelegate.self) private var appDelegate
+struct RepeatingTimerApp: App {
+    @NSApplicationDelegateAdaptor(RepeatingTimerAppDelegate.self) private var appDelegate
     @State private var viewModel = TimerViewModel()
 
     var body: some Scene {

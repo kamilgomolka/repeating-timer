@@ -1,6 +1,6 @@
 //
 //  IntervalOption.swift
-//  Timer
+//  RepeatingTimer
 //
 //  Created by Kamil Gomolka on 15/08/2026.
 //
