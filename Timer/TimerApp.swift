@@ -17,6 +17,10 @@ final class TimerAppDelegate: NSObject, NSApplicationDelegate {
         _ = NotificationManager.shared
     }
 
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        true
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         viewModel?.stop()
     }
@@ -28,19 +32,11 @@ struct TimerApp: App {
     @State private var viewModel = TimerViewModel()
 
     var body: some Scene {
-        MenuBarExtra {
+        WindowGroup {
             ContentView(viewModel: viewModel)
                 .onAppear { appDelegate.viewModel = viewModel }
-        } label: {
-            Label {
-                if viewModel.isRunning {
-                    Text(viewModel.formattedTimeRemaining)
-                        .monospacedDigit()
-                }
-            } icon: {
-                Image(systemName: "timer")
-            }
         }
-        .menuBarExtraStyle(.window)
+        .windowResizability(.contentSize)
+        .defaultSize(width: 240, height: 220)
     }
 }

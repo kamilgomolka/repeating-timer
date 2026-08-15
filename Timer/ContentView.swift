@@ -83,21 +83,11 @@ struct ContentView: View {
                     .controlSize(.small)
                 }
             }
-
-            Divider()
-
-            Button("Quit application") {
-                viewModel.stop()
-                NSApplication.shared.terminate(nil)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .font(.footnote)
         }
         .padding(16)
         .frame(width: 240)
         .onAppear {
-            Task { await viewModel.handlePanelAppeared() }
+            Task { await viewModel.handleWindowAppeared() }
         }
     }
 }

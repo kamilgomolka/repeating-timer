@@ -63,8 +63,6 @@ final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificatio
     }
 
     func requestAuthorization() async -> NotificationAuthorizationState {
-        // Menu-bar apps (LSUIElement) are never frontmost on their own.
-        // Activating first makes the system permission alert actually appear.
         NSApp.activate()
 
         do {
@@ -72,12 +70,6 @@ final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificatio
         } catch {
             // Fall through to whatever the current settings report.
         }
-
-        // Don't stay the frontmost app after the permission alert; otherwise
-        // the next reminder is delivered via willPresent (foreground path)
-        // and macOS often plays the sound without showing a banner.
-        NSApp.deactivate()
-
         return await currentAuthorizationState()
     }
 

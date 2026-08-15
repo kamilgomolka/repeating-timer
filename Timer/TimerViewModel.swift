@@ -96,10 +96,9 @@ final class TimerViewModel {
         }
     }
 
-    /// Called when the menu-bar panel appears. Only refreshes the denied banner;
-    /// the system prompt is deferred to `start()`, where user intent is explicit
-    /// and MenuBarExtra appear/disappear timing does not matter.
-    func handlePanelAppeared() async {
+    /// Called when the window appears. Only refreshes the denied banner;
+    /// the system prompt is deferred to `start()`, where user intent is explicit.
+    func handleWindowAppeared() async {
         await refreshNotificationAuthorization(requestIfUndetermined: false)
     }
 

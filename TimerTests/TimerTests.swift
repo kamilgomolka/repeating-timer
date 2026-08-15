@@ -257,12 +257,12 @@ struct TimerTests {
         #expect(scheduler.scheduledIntervals.isEmpty)
     }
 
-    @Test func panelAppearRefreshesWithoutRequesting() async {
+    @Test func windowAppearRefreshesWithoutRequesting() async {
         let scheduler = MockReminderScheduler()
         scheduler.authorizationState = .notDetermined
         let viewModel = makeViewModel(scheduler: scheduler)
 
-        await viewModel.handlePanelAppeared()
+        await viewModel.handleWindowAppeared()
 
         #expect(scheduler.requestCount == 0)
         #expect(!viewModel.isNotificationDenied)
