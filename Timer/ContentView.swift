@@ -46,7 +46,7 @@ struct ContentView: View {
                 .animation(.default, value: viewModel.formattedTimeRemaining)
 
             Button {
-                viewModel.toggle()
+                Task { await viewModel.toggle() }
             } label: {
                 Text(viewModel.isRunning ? "Stop" : "Start")
                     .frame(maxWidth: .infinity)
@@ -55,7 +55,16 @@ struct ContentView: View {
             .buttonStyle(.borderedProminent)
             .tint(viewModel.isRunning ? .red : .green)
             .controlSize(.large)
-            .disabled(!viewModel.isRunning && !viewModel.isCustomInputValid)
+            .disabled(viewModel.isStarting || (!viewModel.isRunning && !viewModel.isCustomInputValid))
+
+            if let scheduleErrorMessage = viewModel.scheduleErrorMessage {
+                Text(scheduleErrorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+            }
 
             if viewModel.isNotificationDenied {
                 VStack(spacing: 8) {

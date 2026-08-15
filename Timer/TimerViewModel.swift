@@ -22,9 +22,12 @@ final class TimerViewModel {
     var customMinutesText: String
 
     private(set) var isRunning = false
+    private(set) var isStarting = false
     private(set) var timeRemaining: TimeInterval = 0
     /// True only after the user has explicitly denied notification permission.
     private(set) var isNotificationDenied = false
+    /// Set when `UNUserNotificationCenter` rejects the repeating reminder.
+    private(set) var scheduleErrorMessage: String?
 
     /// The moment the current cycle ends. Recomputing `timeRemaining` from this
     /// date (rather than decrementing a counter every tick) keeps the display
@@ -85,11 +88,11 @@ final class TimerViewModel {
         return String(format: "%02d:%02d", total / 60, total % 60)
     }
 
-    func toggle() {
+    func toggle() async {
         if isRunning {
             stop()
         } else {
-            start()
+            await start()
         }
     }
 
@@ -131,25 +134,38 @@ final class TimerViewModel {
         }
     }
 
-    func start() {
-        guard !isRunning, isCustomInputValid else { return }
+    func start() async {
+        guard !isRunning, !isStarting, isCustomInputValid else { return }
+
+        isStarting = true
+        scheduleErrorMessage = nil
+        defer { isStarting = false }
 
         let minutes = selectedOption == .custom ? (customMinutes ?? 30) : selectedOption.rawValue
-        intervalSeconds = TimeInterval(minutes * 60)
-        endDate = now().addingTimeInterval(intervalSeconds)
-        timeRemaining = intervalSeconds
-        isRunning = true
+        let seconds = TimeInterval(minutes * 60)
 
-        reminderScheduler.scheduleRepeatingReminder(intervalSeconds: intervalSeconds, minutes: minutes)
+        do {
+            try await reminderScheduler.scheduleRepeatingReminder(intervalSeconds: seconds, minutes: minutes)
+        } catch {
+            scheduleErrorMessage = "Nie udało się ustawić powiadomienia."
+            return
+        }
+
+        intervalSeconds = seconds
+        endDate = now().addingTimeInterval(seconds)
+        timeRemaining = seconds
+        isRunning = true
         startTicking()
     }
 
     func stop() {
         isRunning = false
+        isStarting = false
         tickTask?.cancel()
         tickTask = nil
         endDate = nil
         timeRemaining = 0
+        scheduleErrorMessage = nil
         reminderScheduler.cancelReminder()
     }
 

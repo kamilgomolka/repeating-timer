@@ -20,7 +20,7 @@ enum NotificationAuthorizationState {
 protocol ReminderScheduling {
     func currentAuthorizationState() async -> NotificationAuthorizationState
     func requestAuthorization() async -> NotificationAuthorizationState
-    func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int)
+    func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int) async throws
     func cancelReminder()
     func openSystemNotificationSettings()
 }
@@ -55,7 +55,7 @@ final class NotificationManager: ReminderScheduling {
         return await currentAuthorizationState()
     }
 
-    func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int) {
+    func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {
         let content = UNMutableNotificationContent()
         content.title = "Timer"
         content.body = "Minęło \(minutes) min."
@@ -66,7 +66,7 @@ final class NotificationManager: ReminderScheduling {
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: intervalSeconds, repeats: true)
         let request = UNNotificationRequest(identifier: reminderIdentifier, content: content, trigger: trigger)
 
-        center.add(request)
+        try await center.add(request)
     }
 
     func cancelReminder() {
