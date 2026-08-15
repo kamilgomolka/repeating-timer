@@ -57,6 +57,23 @@ struct ContentView: View {
             .controlSize(.large)
             .disabled(!viewModel.isRunning && !viewModel.isCustomInputValid)
 
+            if viewModel.isNotificationDenied {
+                VStack(spacing: 8) {
+                    Text("Brak uprawnienia do powiadomień.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
+
+                    Button("Włącz w ustawieniach") {
+                        viewModel.openNotificationSettings()
+                    }
+                    .controlSize(.small)
+                }
+            }
+
             Divider()
 
             Button("Zamknij aplikację") {
@@ -68,6 +85,12 @@ struct ContentView: View {
         }
         .padding(16)
         .frame(width: 240)
+        .onAppear {
+            viewModel.handlePanelAppeared()
+        }
+        .onDisappear {
+            viewModel.handlePanelDisappeared()
+        }
     }
 }
 

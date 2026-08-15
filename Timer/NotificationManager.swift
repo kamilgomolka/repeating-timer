@@ -5,15 +5,24 @@
 //  Created by Kamil Gomolka on 15/08/2026.
 //
 
+import AppKit
 import Foundation
 import UserNotifications
+
+enum NotificationAuthorizationState {
+    case notDetermined
+    case denied
+    case authorized
+}
 
 /// Abstraction over `UNUserNotificationCenter` so `TimerViewModel` can be
 /// unit-tested without touching the real notification system.
 protocol ReminderScheduling {
-    func requestAuthorizationIfNeeded()
+    func currentAuthorizationState() async -> NotificationAuthorizationState
+    func requestAuthorization() async -> NotificationAuthorizationState
     func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int)
     func cancelReminder()
+    func openSystemNotificationSettings()
 }
 
 /// Schedules a single, system-repeating local notification for the interval
@@ -29,12 +38,21 @@ final class NotificationManager: ReminderScheduling {
 
     private init() {}
 
-    func requestAuthorizationIfNeeded() {
-        Task {
-            let settings = await center.notificationSettings()
-            guard settings.authorizationStatus == .notDetermined else { return }
-            _ = try? await center.requestAuthorization(options: [.alert, .sound])
+    func currentAuthorizationState() async -> NotificationAuthorizationState {
+        Self.map(await center.notificationSettings().authorizationStatus)
+    }
+
+    func requestAuthorization() async -> NotificationAuthorizationState {
+        // Menu-bar apps (LSUIElement) are never frontmost on their own.
+        // Activating first makes the system permission alert actually appear.
+        NSApp.activate()
+
+        do {
+            _ = try await center.requestAuthorization(options: [.alert, .sound])
+        } catch {
+            // Fall through to whatever the current settings report.
         }
+        return await currentAuthorizationState()
     }
 
     func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int) {
@@ -53,5 +71,23 @@ final class NotificationManager: ReminderScheduling {
 
     func cancelReminder() {
         center.removePendingNotificationRequests(withIdentifiers: [reminderIdentifier])
+    }
+
+    func openSystemNotificationSettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    private static func map(_ status: UNAuthorizationStatus) -> NotificationAuthorizationState {
+        switch status {
+        case .notDetermined:
+            .notDetermined
+        case .denied:
+            .denied
+        case .authorized, .provisional, .ephemeral:
+            .authorized
+        @unknown default:
+            .authorized
+        }
     }
 }

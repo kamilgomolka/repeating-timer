@@ -23,6 +23,8 @@ final class TimerViewModel {
 
     private(set) var isRunning = false
     private(set) var timeRemaining: TimeInterval = 0
+    /// True only after the user has explicitly denied notification permission.
+    private(set) var isNotificationDenied = false
 
     /// The moment the current cycle ends. Recomputing `timeRemaining` from this
     /// date (rather than decrementing a counter every tick) keeps the display
@@ -30,6 +32,7 @@ final class TimerViewModel {
     private var endDate: Date?
     private var intervalSeconds: TimeInterval = 0
     private var tickTask: Task<Void, Never>?
+    private var authorizationTask: Task<Void, Never>?
 
     private let reminderScheduler: ReminderScheduling
     private let defaults: UserDefaults
@@ -57,7 +60,6 @@ final class TimerViewModel {
             customMinutesText = "45"
         }
 
-        reminderScheduler.requestAuthorizationIfNeeded()
         // Clear any reminder left scheduled from a previous session (e.g. the
         // app was force-quit while running) so state stays consistent with UI,
         // which always starts stopped.
@@ -89,6 +91,37 @@ final class TimerViewModel {
         } else {
             start()
         }
+    }
+
+    /// Called when the menu-bar panel appears. Shows the denied banner
+    /// immediately if permission was already refused; otherwise waits a
+    /// second and then asks the system (only while status is still undetermined).
+    func handlePanelAppeared() {
+        authorizationTask?.cancel()
+        authorizationTask = Task { [weak self] in
+            guard let self else { return }
+            await self.refreshNotificationAuthorization(requestIfUndetermined: false)
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            await self.refreshNotificationAuthorization(requestIfUndetermined: true)
+        }
+    }
+
+    func handlePanelDisappeared() {
+        authorizationTask?.cancel()
+        authorizationTask = nil
+    }
+
+    func refreshNotificationAuthorization(requestIfUndetermined: Bool = true) async {
+        var state = await reminderScheduler.currentAuthorizationState()
+        if requestIfUndetermined, state == .notDetermined {
+            state = await reminderScheduler.requestAuthorization()
+        }
+        isNotificationDenied = (state == .denied)
+    }
+
+    func openNotificationSettings() {
+        reminderScheduler.openSystemNotificationSettings()
     }
 
     func persistSelection() {
