@@ -5,11 +5,11 @@
 //  Created by Kamil Gomolka on 15/08/2026.
 //
 
+import AppKit
 import SwiftUI
 
 struct ContentView: View {
     @Bindable var viewModel: TimerViewModel
-    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
@@ -24,9 +24,8 @@ struct ContentView: View {
         .onAppear {
             Task { await viewModel.handleWindowAppeared() }
         }
-        .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            Task { await viewModel.handleWindowAppeared() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task { await viewModel.handleAppForegrounded() }
         }
     }
 
@@ -85,11 +84,12 @@ struct ContentView: View {
             } label: {
                 Text(viewModel.isRunning ? "Stop" : "Start timer")
                     .font(.title2)
+                    .bold()
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
             }
             .buttonStyle(.borderedProminent)
-            .tint(viewModel.isRunning ? .red : .green)
+            .tint(viewModel.isRunning ? .red : .blue)
             .controlSize(.large)
             .disabled(viewModel.isStarting || (!viewModel.isRunning && !viewModel.isCustomInputValid))
 
@@ -107,12 +107,12 @@ struct ContentView: View {
 
     private var permissionDeniedView: some View {
         VStack(spacing: 20) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 36))
-                .foregroundStyle(.yellow)
+            Image(systemName: "bell.badge.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(Color.red)
                 .accessibilityHidden(true)
 
-            Text("This application requires notification permission to work properly.")
+            Text("This application needs \"Notifications\" permission in order to show timer pop-up.")
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 

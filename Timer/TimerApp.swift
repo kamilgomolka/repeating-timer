@@ -21,6 +21,10 @@ final class TimerAppDelegate: NSObject, NSApplicationDelegate {
         true
     }
 
+    func applicationDidBecomeActive(_ notification: Notification) {
+        Task { await viewModel?.handleAppForegrounded() }
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         viewModel?.stop()
     }

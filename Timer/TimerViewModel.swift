@@ -96,9 +96,17 @@ final class TimerViewModel {
         }
     }
 
-    /// Called when the window appears. Only refreshes the denied banner;
+    /// Called when the window appears. Only refreshes the denied state;
     /// the system prompt is deferred to `start()`, where user intent is explicit.
     func handleWindowAppeared() async {
+        await refreshNotificationAuthorization(requestIfUndetermined: false)
+    }
+
+    /// Called when the app becomes frontmost (e.g. returning from System Settings).
+    /// TCC can lag a moment before the new authorization is visible to this process.
+    func handleAppForegrounded() async {
+        await refreshNotificationAuthorization(requestIfUndetermined: false)
+        try? await Task.sleep(for: .milliseconds(500))
         await refreshNotificationAuthorization(requestIfUndetermined: false)
     }
 
