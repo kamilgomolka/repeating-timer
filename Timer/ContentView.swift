@@ -74,7 +74,7 @@ struct ContentView: View {
                 .font(.system(size: viewModel.isRunning ? 56 : 44, weight: .bold, design: .monospaced))
                 .monospacedDigit()
                 .foregroundStyle(viewModel.isRunning ? Color.primary : Color.secondary)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: 66.0)            
                 .contentTransition(.numericText(countsDown: true))
                 .animation(.default, value: viewModel.isRunning)
                 .animation(.default, value: viewModel.formattedTimeRemaining)
@@ -82,12 +82,16 @@ struct ContentView: View {
             Button {
                 Task { await viewModel.toggle() }
             } label: {
-                Text(viewModel.isRunning ? "Stop" : "Start timer")
-                    .font(.title2)
-                    .bold()
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
+                Label(
+                    viewModel.isRunning ? "Stop" : "Start timer",
+                    systemImage: viewModel.isRunning ? "stop.fill" : "play.fill"
+                )
+                .font(.title2)
+                .bold()
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
             }
+            .labelStyle(.titleAndIcon)
             .buttonStyle(.borderedProminent)
             .tint(viewModel.isRunning ? .red : .blue)
             .controlSize(.large)
