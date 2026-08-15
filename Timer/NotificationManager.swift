@@ -33,7 +33,8 @@ protocol ReminderScheduling {
 final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
 
-    private let reminderIdentifier = "com.kamil.timer.interval-reminder"
+    private let reminderIdentifier = "kamil.gomolka.Timer.interval-reminder"
+    private let legacyReminderIdentifier = "com.kamil.timer.interval-reminder"
     private let center = UNUserNotificationCenter.current()
 
     private override init() {
@@ -73,7 +74,9 @@ final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificatio
     }
 
     func cancelReminder() {
-        center.removePendingNotificationRequests(withIdentifiers: [reminderIdentifier])
+        center.removePendingNotificationRequests(
+            withIdentifiers: [reminderIdentifier, legacyReminderIdentifier]
+        )
     }
 
     func openSystemNotificationSettings() {

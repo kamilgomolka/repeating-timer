@@ -35,7 +35,6 @@ final class TimerViewModel {
     private var endDate: Date?
     private var intervalSeconds: TimeInterval = 0
     private var tickTask: Task<Void, Never>?
-    private var authorizationTask: Task<Void, Never>?
 
     private let reminderScheduler: ReminderScheduling
     private let defaults: UserDefaults
@@ -96,23 +95,11 @@ final class TimerViewModel {
         }
     }
 
-    /// Called when the menu-bar panel appears. Shows the denied banner
-    /// immediately if permission was already refused; otherwise waits a
-    /// second and then asks the system (only while status is still undetermined).
-    func handlePanelAppeared() {
-        authorizationTask?.cancel()
-        authorizationTask = Task { [weak self] in
-            guard let self else { return }
-            await self.refreshNotificationAuthorization(requestIfUndetermined: false)
-            try? await Task.sleep(for: .seconds(1))
-            guard !Task.isCancelled else { return }
-            await self.refreshNotificationAuthorization(requestIfUndetermined: true)
-        }
-    }
-
-    func handlePanelDisappeared() {
-        authorizationTask?.cancel()
-        authorizationTask = nil
+    /// Called when the menu-bar panel appears. Only refreshes the denied banner;
+    /// the system prompt is deferred to `start()`, where user intent is explicit
+    /// and MenuBarExtra appear/disappear timing does not matter.
+    func handlePanelAppeared() async {
+        await refreshNotificationAuthorization(requestIfUndetermined: false)
     }
 
     func refreshNotificationAuthorization(requestIfUndetermined: Bool = true) async {
@@ -144,6 +131,8 @@ final class TimerViewModel {
         let minutes = selectedOption == .custom ? (customMinutes ?? 30) : selectedOption.rawValue
         let seconds = TimeInterval(minutes * 60)
 
+        await refreshNotificationAuthorization(requestIfUndetermined: true)
+
         do {
             try await reminderScheduler.scheduleRepeatingReminder(intervalSeconds: seconds, minutes: minutes)
         } catch {
@@ -173,7 +162,7 @@ final class TimerViewModel {
     /// rolls `endDate` forward by whole intervals to stay in phase with the
     /// repeating system notification, then keeps counting down to the next one.
     func tick() {
-        guard let currentEndDate = endDate else { return }
+        guard let currentEndDate = endDate, intervalSeconds > 0 else { return }
 
         var nextEndDate = currentEndDate
         while nextEndDate.timeIntervalSince(now()) <= 0 {

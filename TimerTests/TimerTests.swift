@@ -44,13 +44,33 @@ private final class MockReminderScheduler: ReminderScheduling {
 }
 
 @MainActor
+private enum IsolatedDefaults {
+    private static var pendingSuiteNames: [String] = []
+
+    static func makeStore() -> UserDefaults {
+        reap()
+        let suiteName = "TimerTests.\(UUID().uuidString)"
+        let store = UserDefaults(suiteName: suiteName)!
+        store.removePersistentDomain(forName: suiteName)
+        pendingSuiteNames.append(suiteName)
+        return store
+    }
+
+    static func reap() {
+        for suiteName in pendingSuiteNames {
+            UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
+        }
+        pendingSuiteNames.removeAll()
+    }
+}
+
+@MainActor
 private func makeViewModel(
     scheduler: MockReminderScheduler? = nil,
     defaults: UserDefaults? = nil,
     now: @escaping () -> Date = Date.init
 ) -> TimerViewModel {
-    let suiteName = "TimerTests.\(UUID().uuidString)"
-    let store = defaults ?? UserDefaults(suiteName: suiteName)!
+    let store = defaults ?? IsolatedDefaults.makeStore()
     return TimerViewModel(reminderScheduler: scheduler ?? MockReminderScheduler(), defaults: store, now: now)
 }
 
@@ -145,8 +165,7 @@ struct TimerTests {
     }
 
     @Test func persistedSelectionIsRestoredOnNextLaunch() {
-        let suiteName = "TimerTests.\(UUID().uuidString)"
-        let store = UserDefaults(suiteName: suiteName)!
+        let store = IsolatedDefaults.makeStore()
 
         let first = makeViewModel(defaults: store)
         first.selectedOption = .custom
@@ -203,6 +222,28 @@ struct TimerTests {
         #expect(viewModel.timeRemaining == 0)
         #expect(viewModel.scheduleErrorMessage != nil)
         #expect(scheduler.scheduledIntervals.isEmpty)
+    }
+
+    @Test func panelAppearRefreshesWithoutRequesting() async {
+        let scheduler = MockReminderScheduler()
+        scheduler.authorizationState = .notDetermined
+        let viewModel = makeViewModel(scheduler: scheduler)
+
+        await viewModel.handlePanelAppeared()
+
+        #expect(scheduler.requestCount == 0)
+        #expect(!viewModel.isNotificationDenied)
+    }
+
+    @Test func startRequestsAuthorizationWhenNotDetermined() async {
+        let scheduler = MockReminderScheduler()
+        scheduler.authorizationState = .notDetermined
+        let viewModel = makeViewModel(scheduler: scheduler)
+
+        await viewModel.start()
+
+        #expect(scheduler.requestCount == 1)
+        #expect(viewModel.isRunning)
     }
 
     @Test func refreshMarksDeniedWithoutRequestingAgain() async {

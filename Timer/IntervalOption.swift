@@ -9,7 +9,7 @@ import Foundation
 
 /// Predefined reminder intervals shown in the segmented picker, plus a sentinel
 /// case for user-supplied custom minute values.
-enum IntervalOption: Int, CaseIterable, Codable, Identifiable {
+enum IntervalOption: Int, CaseIterable, Identifiable {
     case fifteen = 15
     case thirty = 30
     case sixty = 60

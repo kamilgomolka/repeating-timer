@@ -18,6 +18,7 @@ struct ContentView: View {
                 }
             }
             .labelsHidden()
+            .accessibilityLabel("Interval")
             .pickerStyle(.segmented)
             .disabled(viewModel.isRunning)
             .onChange(of: viewModel.selectedOption) { _, _ in
@@ -96,14 +97,19 @@ struct ContentView: View {
         .padding(16)
         .frame(width: 240)
         .onAppear {
-            viewModel.handlePanelAppeared()
-        }
-        .onDisappear {
-            viewModel.handlePanelDisappeared()
+            Task { await viewModel.handlePanelAppeared() }
         }
     }
 }
 
 #Preview {
-    ContentView(viewModel: TimerViewModel())
+    ContentView(viewModel: TimerViewModel(reminderScheduler: PreviewReminderScheduler()))
+}
+
+private struct PreviewReminderScheduler: ReminderScheduling {
+    func currentAuthorizationState() async -> NotificationAuthorizationState { .authorized }
+    func requestAuthorization() async -> NotificationAuthorizationState { .authorized }
+    func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {}
+    func cancelReminder() {}
+    func openSystemNotificationSettings() {}
 }
