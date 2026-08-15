@@ -12,7 +12,7 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Picker("Interwał", selection: $viewModel.selectedOption) {
+            Picker("Interval", selection: $viewModel.selectedOption) {
                 ForEach(IntervalOption.allCases) { option in
                     Text(option.label).tag(option)
                 }
@@ -25,7 +25,7 @@ struct ContentView: View {
             }
 
             if viewModel.selectedOption == .custom {
-                TextField("Minuty", text: $viewModel.customMinutesText)
+                TextField("Minutes", text: $viewModel.customMinutesText)
                     .textFieldStyle(.roundedBorder)
                     .multilineTextAlignment(.center)
                     .disabled(viewModel.isRunning)
@@ -48,7 +48,7 @@ struct ContentView: View {
             Button {
                 Task { await viewModel.toggle() }
             } label: {
-                Text(viewModel.isRunning ? "Zatrzymaj" : "Uruchom")
+                Text(viewModel.isRunning ? "Stop" : "Start")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
             }
@@ -68,7 +68,7 @@ struct ContentView: View {
 
             if viewModel.isNotificationDenied {
                 VStack(spacing: 8) {
-                    Text("Brak uprawnienia do powiadomień.")
+                    Text("App needs notifications permission.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -76,7 +76,7 @@ struct ContentView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity)
 
-                    Button("Włącz w ustawieniach") {
+                    Button("Enable in Settings") {
                         viewModel.openNotificationSettings()
                     }
                     .controlSize(.small)
@@ -85,7 +85,7 @@ struct ContentView: View {
 
             Divider()
 
-            Button("Zamknij aplikację") {
+            Button("Quit") {
                 viewModel.stop()
                 NSApplication.shared.terminate(nil)
             }

@@ -60,8 +60,8 @@ final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificatio
 
     func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {
         let content = UNMutableNotificationContent()
-        content.title = "Minutnik"
-        content.body = "Minęło \(minutes) min."
+        content.title = "Timer"
+        content.body = "\(minutes) min have passed."
         content.sound = .default
 
         // UNTimeIntervalNotificationTrigger requires >= 60s when repeating,

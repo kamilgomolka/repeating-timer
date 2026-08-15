@@ -147,7 +147,7 @@ final class TimerViewModel {
         do {
             try await reminderScheduler.scheduleRepeatingReminder(intervalSeconds: seconds, minutes: minutes)
         } catch {
-            scheduleErrorMessage = "Nie udało się ustawić powiadomienia."
+            scheduleErrorMessage = "Couldn't schedule the notification."
             return
         }
 
