@@ -82,7 +82,7 @@ final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificatio
         let identifier = UUID().uuidString
 
         let content = UNMutableNotificationContent()
-        content.title = "Timer"
+        content.title = "Repeating Timer"
         content.body = "\(minutes) min passed."
         content.sound = .default
 

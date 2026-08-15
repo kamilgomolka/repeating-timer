@@ -32,11 +32,11 @@ struct TimerApp: App {
     @State private var viewModel = TimerViewModel()
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup("Repeating Timer") {
             ContentView(viewModel: viewModel)
                 .onAppear { appDelegate.viewModel = viewModel }
         }
         .windowResizability(.contentSize)
-        .defaultSize(width: 240, height: 220)
+        .defaultSize(width: 320, height: 420)
     }
 }

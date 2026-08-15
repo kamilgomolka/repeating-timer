@@ -9,21 +9,47 @@ import SwiftUI
 
 struct ContentView: View {
     @Bindable var viewModel: TimerViewModel
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        VStack(spacing: 16) {
-            Picker("Interval", selection: $viewModel.selectedOption) {
-                ForEach(IntervalOption.allCases) { option in
-                    Text(option.label).tag(option)
+        Group {
+            if viewModel.isNotificationDenied {
+                permissionDeniedView
+            } else {
+                timerView
+            }
+        }
+        .padding(.horizontal, 28)
+        .padding(.vertical, 32)
+        .frame(width: 320)
+        .onAppear {
+            Task { await viewModel.handleWindowAppeared() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task { await viewModel.handleWindowAppeared() }
+        }
+    }
+
+    private var timerView: some View {
+        VStack(spacing: 28) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Choose repeat interval")
+                    .font(.headline)
+
+                Picker("Choose repeat interval", selection: $viewModel.selectedOption) {
+                    ForEach(IntervalOption.allCases) { option in
+                        Text(option.label).tag(option)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.radioGroup)
+                .disabled(viewModel.isRunning)
+                .onChange(of: viewModel.selectedOption) { _, _ in
+                    viewModel.persistSelection()
                 }
             }
-            .labelsHidden()
-            .accessibilityLabel("Interval")
-            .pickerStyle(.segmented)
-            .disabled(viewModel.isRunning)
-            .onChange(of: viewModel.selectedOption) { _, _ in
-                viewModel.persistSelection()
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             if viewModel.selectedOption == .custom {
                 TextField("Minutes", text: $viewModel.customMinutesText)
@@ -40,10 +66,12 @@ struct ContentView: View {
             }
 
             Text(viewModel.formattedTimeRemaining)
-                .font(.system(size: 56, weight: .bold, design: .monospaced))
+                .font(.system(size: viewModel.isRunning ? 56 : 32, weight: .bold, design: .monospaced))
                 .monospacedDigit()
+                .foregroundStyle(viewModel.isRunning ? Color.primary : Color.secondary)
                 .frame(maxWidth: .infinity)
                 .contentTransition(.numericText(countsDown: true))
+                .animation(.default, value: viewModel.isRunning)
                 .animation(.default, value: viewModel.formattedTimeRemaining)
 
             Button {
@@ -66,39 +94,50 @@ struct ContentView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity)
             }
+        }
+    }
 
-            if viewModel.isNotificationDenied {
-                VStack(spacing: 8) {
-                    Text("App needs notifications permission.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity)
+    private var permissionDeniedView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 36))
+                .foregroundStyle(.yellow)
+                .accessibilityHidden(true)
 
-                    Button("Enable in Settings") {
-                        viewModel.openNotificationSettings()
-                    }
-                    .controlSize(.small)
-                }
+            Text("This application requires notification permission to work properly.")
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button("Enable in Settings") {
+                viewModel.openNotificationSettings()
             }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
         }
-        .padding(16)
-        .frame(width: 240)
-        .onAppear {
-            Task { await viewModel.handleWindowAppeared() }
-        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
     }
 }
 
-#Preview {
+#Preview("Timer") {
     ContentView(viewModel: TimerViewModel(reminderScheduler: PreviewReminderScheduler()))
+}
+
+#Preview("Permission denied") {
+    ContentView(viewModel: TimerViewModel(reminderScheduler: DeniedPreviewReminderScheduler()))
 }
 
 private struct PreviewReminderScheduler: ReminderScheduling {
     func currentAuthorizationState() async -> NotificationAuthorizationState { .authorized }
     func requestAuthorization() async -> NotificationAuthorizationState { .authorized }
+    func scheduleReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {}
+    func cancelReminder() {}
+    func openSystemNotificationSettings() {}
+}
+
+private struct DeniedPreviewReminderScheduler: ReminderScheduling {
+    func currentAuthorizationState() async -> NotificationAuthorizationState { .denied }
+    func requestAuthorization() async -> NotificationAuthorizationState { .denied }
     func scheduleReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {}
     func cancelReminder() {}
     func openSystemNotificationSettings() {}
