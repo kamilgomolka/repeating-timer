@@ -58,7 +58,7 @@ final class NotificationManager: ReminderScheduling {
     func scheduleRepeatingReminder(intervalSeconds: TimeInterval, minutes: Int) {
         let content = UNMutableNotificationContent()
         content.title = "Timer"
-        content.body = "Upłynęło \(minutes) min."
+        content.body = "Minęło \(minutes) min."
         content.sound = .default
 
         // UNTimeIntervalNotificationTrigger requires >= 60s when repeating,
