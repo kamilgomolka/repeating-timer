@@ -36,6 +36,10 @@ protocol ReminderScheduling {
 /// a brand-new request every cycle — driven by `TimerViewModel.tick()` on
 /// each rollover — sidesteps that entirely, since every occurrence is a
 /// distinct notification as far as the system is concerned.
+///
+/// The previous cycle's request is intentionally left alone at rollover.
+/// Clearing it in the same second it fires removes the banner (the sound
+/// can still play) and can cancel a pending request that hasn't fired yet.
 @MainActor
 final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
@@ -68,28 +72,29 @@ final class NotificationManager: NSObject, ReminderScheduling, UNUserNotificatio
         } catch {
             // Fall through to whatever the current settings report.
         }
+
+        // Don't stay the frontmost app after the permission alert; otherwise
+        // the next reminder is delivered via willPresent (foreground path)
+        // and macOS often plays the sound without showing a banner.
+        NSApp.deactivate()
+
         return await currentAuthorizationState()
     }
 
     func scheduleReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {
-        // Clear the previous cycle's notification (pending or already
-        // delivered/undismissed) before scheduling a fresh one.
-        clearCurrentIdentifier()
-
+        // Do not cancel or remove the previous cycle's notification here.
+        // Rollover happens in the same second the current request fires, so
+        // clearing it would swallow the banner (sound can still play) and
+        // cancel a still-pending next request scheduled slightly after endDate.
+        let delay = max(intervalSeconds, 0.1)
         let identifier = UUID().uuidString
 
         let content = UNMutableNotificationContent()
         content.title = "Timer"
         content.body = "\(minutes) min passed."
         content.sound = .default
-        // Degrades gracefully to the default interruption level if the
-        // restricted time-sensitive entitlement isn't granted/approved.
-        content.interruptionLevel = .timeSensitive
 
-        // No repeats: true means no ≥60s minimum, and every occurrence is a
-        // distinct identifier, so it always alerts even if the previous one
-        // was never dismissed.
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: intervalSeconds, repeats: false)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: delay, repeats: false)
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
 
         try await center.add(request)

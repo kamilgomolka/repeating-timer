@@ -192,9 +192,8 @@ struct TimerTests {
         currentDate.addTimeInterval(15 * 60 + 5)
         await viewModel.tick()
 
-        let expectedSeconds: TimeInterval = 15 * 60
         #expect(scheduler.scheduledIntervals.count == scheduleCountAfterStart + 1)
-        #expect(scheduler.scheduledIntervals.last?.seconds == expectedSeconds)
+        #expect(scheduler.scheduledIntervals.last?.seconds == viewModel.timeRemaining)
         #expect(scheduler.scheduledIntervals.last?.minutes == 15)
     }
 

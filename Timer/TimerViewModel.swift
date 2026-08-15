@@ -177,7 +177,14 @@ final class TimerViewModel {
         timeRemaining = nextEndDate.timeIntervalSince(now())
 
         if rolledOver {
-            try? await reminderScheduler.scheduleReminder(intervalSeconds: intervalSeconds, minutes: activeMinutes)
+            // Schedule until the *next* endDate, not a full interval from now.
+            // Tick runs on a 1s loop, so "now" is slightly past the previous
+            // fire time; a full-interval trigger would land after the next
+            // rollover and get stranded relative to the UI clock.
+            try? await reminderScheduler.scheduleReminder(
+                intervalSeconds: timeRemaining,
+                minutes: activeMinutes
+            )
         }
     }
 
