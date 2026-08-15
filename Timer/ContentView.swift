@@ -77,6 +77,7 @@ struct ContentView: View {
             Divider()
 
             Button("Zamknij aplikację") {
+                viewModel.stop()
                 NSApplication.shared.terminate(nil)
             }
             .buttonStyle(.plain)
