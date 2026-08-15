@@ -86,7 +86,7 @@ struct ContentView: View {
 
             Divider()
 
-            Button("Quit") {
+            Button("Quit application") {
                 viewModel.stop()
                 NSApplication.shared.terminate(nil)
             }
