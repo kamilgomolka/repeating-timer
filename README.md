@@ -1,11 +1,10 @@
 # Repeating Timer
 
-A small macOS app that runs a repeating timer in a loop.
-For example - fires every 15 minutes.
-The purpose is to be aware of a time running by, while being focused on something else.
+A small macOS app that runs a repeating timer in a loop, eg. fires every 15 minutes.
+The purpose is to be aware of a time running by, while being focused on something.
 
-<p align="center">
-  <img src="RepeatingTimer/Assets.xcassets/AppIcon.appiconset/icon_512x512.png" width="128" alt="Repeating Timer icon">
+<p align="left">
+  <img src="RepeatingTimer/Assets.xcassets/AppIcon.appiconset/icon_512x512.png" width="72" alt="Repeating Timer icon">
 </p>
 
 ## Features
@@ -16,6 +15,12 @@ The purpose is to be aware of a time running by, while being focused on somethin
 - Notification permission is requested when the timer starts, not on first launch;
 - If permission is denied, the UI links straight to System Settings;
 - Closing the last window quits the app and cancels any pending reminder;
+
+## Images & Recordings
+
+https://github.com/user-attachments/assets/3f481df4-6603-417d-8094-daec8c968837
+
+<img width="375" height="113" alt="Screenshot 2026-08-15 at 17 07 49" src="https://github.com/user-attachments/assets/c638d956-8e55-4e17-9b86-c58a886a8db9" />
 
 ## Requirements
 
@@ -44,7 +49,7 @@ A repeating `UNTimeIntervalNotificationTrigger` that reuses one request identifi
 
 Repeating Timer schedules a one-shot request with a fresh identifier on each cycle instead. The previous request is left alone at rollover so cancelling it cannot swallow the banner that just fired.
 
-## Layout
+## Project structure
 
 ```
 RepeatingTimer/            App target
