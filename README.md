@@ -18,9 +18,9 @@ The purpose is to be aware of a time running by, while being focused on somethin
 
 ## Images & Recordings
 
-https://github.com/user-attachments/assets/3f481df4-6603-417d-8094-daec8c968837
+https://github.com/user-attachments/assets/44c13720-f917-4a9a-8407-d3d4fdafc9f7
 
-<img width="375" height="113" alt="Screenshot 2026-08-15 at 17 07 49" src="https://github.com/user-attachments/assets/c638d956-8e55-4e17-9b86-c58a886a8db9" />
+<img width="413" height="109" alt="Screenshot 2026-08-27 at 11 54 35" src="https://github.com/user-attachments/assets/1056c071-d93f-41b1-ba22-68052db5e20f" />
 
 ## Requirements
 
