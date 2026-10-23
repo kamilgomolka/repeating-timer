@@ -1,11 +1,17 @@
 # Repeating Timer
 
-A small macOS app that runs a repeating timer in a loop, eg. fires every 15 minutes.
-The purpose is to be aware of a time running by, while being focused on something.
-
 <p align="left">
-  <img src="RepeatingTimer/Assets.xcassets/AppIcon.appiconset/icon_512x512.png" width="72" alt="Repeating Timer icon">
+    <img src="./RepeatingTimer/Assets.xcassets/AppIcon.appiconset/icon_512x512.png" width="64" height="64" alt="App Icon" />
 </p>
+
+[![Swift](https://img.shields.io/badge/Swift-6.0-F05138.svg)](https://swift.org)
+[![Platform](https://img.shields.io/badge/macOS-26.5%2B-000000.svg)](https://developer.apple.com/ios/)
+[![Xcode](https://img.shields.io/badge/Xcode-26.6-1575F9.svg)](https://developer.apple.com/xcode/)
+[![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
+
+A tiny productivity app for MacOS, which runs a timer in a loop, eg. fires every 15 minutes.
+
+The purpose is to be aware of a time running by, while being focused on something.
 
 ## Features
 
