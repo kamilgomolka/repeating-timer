@@ -1,5 +1,3 @@
-# Repeating Timer
-
 <p align="left">
     <img src="./RepeatingTimer/Assets.xcassets/AppIcon.appiconset/icon_512x512.png" width="64" height="64" alt="App Icon" />
 </p>
@@ -8,6 +6,8 @@
 [![Platform](https://img.shields.io/badge/macOS-26.5%2B-000000.svg)](https://developer.apple.com/ios/)
 [![Xcode](https://img.shields.io/badge/Xcode-26.6-1575F9.svg)](https://developer.apple.com/xcode/)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
+
+# Repeating Timer
 
 A tiny productivity app for MacOS, which runs a timer in a loop, eg. fires every 15 minutes.
 
