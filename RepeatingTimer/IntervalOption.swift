@@ -10,6 +10,7 @@ import Foundation
 /// Predefined reminder intervals shown in the radio group, plus a sentinel
 /// case for user-supplied custom minute values.
 enum IntervalOption: Int, CaseIterable, Identifiable {
+    case ten = 10
     case fifteen = 15
     case thirty = 30
     case sixty = 60
@@ -19,6 +20,7 @@ enum IntervalOption: Int, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
+        case .ten: "10 minutes"
         case .fifteen: "15 minutes"
         case .thirty: "30 minutes"
         case .sixty: "1 hour"

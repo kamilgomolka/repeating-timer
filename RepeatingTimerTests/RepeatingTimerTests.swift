@@ -59,6 +59,14 @@ private func makeViewModel(
 @MainActor
 struct RepeatingTimerTests {
 
+    @Test func defaultsToThirtyMinutesAndFortyFiveCustomMinutes() {
+        let viewModel = makeViewModel()
+
+        #expect(viewModel.selectedOption == .thirty)
+        #expect(viewModel.customMinutesText == "45")
+        #expect(IntervalOption.allCases == [.ten, .fifteen, .thirty, .sixty, .custom])
+    }
+
     @Test func startingWithFixedIntervalSetsRemainingWithoutShowingAlertImmediately() {
         let presenter = MockReminderPresenter()
         let viewModel = makeViewModel(presenter: presenter)

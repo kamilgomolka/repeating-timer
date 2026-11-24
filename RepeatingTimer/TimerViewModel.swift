@@ -56,7 +56,7 @@ final class TimerViewModel {
         if let savedMinutes = defaults.object(forKey: DefaultsKey.customMinutes) as? Int {
             customMinutesText = String(savedMinutes)
         } else {
-            customMinutesText = "10"
+            customMinutesText = "45"
         }
     }
 
