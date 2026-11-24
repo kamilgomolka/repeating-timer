@@ -12,17 +12,8 @@ import SwiftUI
 final class RepeatingTimerAppDelegate: NSObject, NSApplicationDelegate {
     var viewModel: TimerViewModel?
 
-    func applicationWillFinishLaunching(_ notification: Notification) {
-        // Install UNUserNotificationCenterDelegate before any reminder can fire.
-        _ = NotificationManager.shared
-    }
-
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
-    }
-
-    func applicationDidBecomeActive(_ notification: Notification) {
-        Task { await viewModel?.handleAppForegrounded() }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

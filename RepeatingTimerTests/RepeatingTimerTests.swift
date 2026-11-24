@@ -9,37 +9,17 @@ import Foundation
 import Testing
 @testable import RepeatingTimer
 
-private struct StubScheduleError: Error {}
-
 @MainActor
-private final class MockReminderScheduler: ReminderScheduling {
-    var authorizationState: NotificationAuthorizationState = .authorized
-    var scheduleError: Error?
-    private(set) var scheduledIntervals: [(seconds: TimeInterval, minutes: Int)] = []
-    private(set) var cancelCount = 0
-    private(set) var requestCount = 0
-    private(set) var openSettingsCount = 0
+private final class MockReminderPresenter: ReminderPresenting {
+    private(set) var shownMinutes: [Int] = []
+    private(set) var dismissCount = 0
 
-    func currentAuthorizationState() async -> NotificationAuthorizationState {
-        authorizationState
+    func showReminder(minutes: Int) {
+        shownMinutes.append(minutes)
     }
 
-    func requestAuthorization() async -> NotificationAuthorizationState {
-        requestCount += 1
-        return authorizationState
-    }
-
-    func scheduleReminder(intervalSeconds: TimeInterval, minutes: Int) async throws {
-        if let scheduleError { throw scheduleError }
-        scheduledIntervals.append((intervalSeconds, minutes))
-    }
-
-    func cancelReminder() {
-        cancelCount += 1
-    }
-
-    func openSystemNotificationSettings() {
-        openSettingsCount += 1
+    func dismissReminder() {
+        dismissCount += 1
     }
 }
 
@@ -60,66 +40,63 @@ private enum IsolatedDefaults {
         for suiteName in pendingSuiteNames {
             UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
         }
+
         pendingSuiteNames.removeAll()
     }
 }
 
 @MainActor
 private func makeViewModel(
-    scheduler: MockReminderScheduler? = nil,
+    presenter: MockReminderPresenter? = nil,
     defaults: UserDefaults? = nil,
     now: @escaping () -> Date = Date.init
 ) -> TimerViewModel {
     let store = defaults ?? IsolatedDefaults.makeStore()
-    return TimerViewModel(reminderScheduler: scheduler ?? MockReminderScheduler(), defaults: store, now: now)
+    return TimerViewModel(reminderPresenter: presenter ?? MockReminderPresenter(), defaults: store, now: now)
 }
 
 @Suite(.serialized)
 @MainActor
 struct RepeatingTimerTests {
 
-    @Test func startingWithFixedIntervalSchedulesReminderAndSetsRemaining() async {
-        let scheduler = MockReminderScheduler()
-        let viewModel = makeViewModel(scheduler: scheduler)
+    @Test func startingWithFixedIntervalSetsRemainingWithoutShowingAlertImmediately() {
+        let presenter = MockReminderPresenter()
+        let viewModel = makeViewModel(presenter: presenter)
         viewModel.selectedOption = .thirty
 
-        await viewModel.start()
+        viewModel.start()
 
         let expectedSeconds: TimeInterval = 30 * 60
         #expect(viewModel.isRunning)
         #expect(viewModel.timeRemaining == expectedSeconds)
-        #expect(scheduler.scheduledIntervals.last?.seconds == expectedSeconds)
-        #expect(scheduler.scheduledIntervals.last?.minutes == 30)
+        #expect(presenter.shownMinutes.isEmpty)
     }
 
-    @Test func stopResetsStateAndCancelsReminder() async {
-        let scheduler = MockReminderScheduler()
-        let viewModel = makeViewModel(scheduler: scheduler)
+    @Test func stopResetsStateAndDismissesReminder() {
+        let presenter = MockReminderPresenter()
+        let viewModel = makeViewModel(presenter: presenter)
         viewModel.selectedOption = .fifteen
-        // TimerViewModel.init() already cancels any stale reminder left over
-        // from a previous session, so the baseline is not necessarily 0.
-        let cancelCountBeforeStop = scheduler.cancelCount
 
-        await viewModel.start()
+        viewModel.start()
         viewModel.stop()
 
         #expect(!viewModel.isRunning)
         #expect(viewModel.timeRemaining == 0)
-        #expect(scheduler.cancelCount == cancelCountBeforeStop + 1)
+        #expect(presenter.dismissCount == 1)
     }
 
-    @Test func customIntervalRequiresValidNumberBeforeStart() async {
+    @Test func customIntervalRequiresValidNumberBeforeStart() {
         let viewModel = makeViewModel()
         viewModel.selectedOption = .custom
         viewModel.customMinutesText = ""
 
         #expect(!viewModel.isCustomInputValid)
-        await viewModel.start()
+        viewModel.start()
         #expect(!viewModel.isRunning)
 
         viewModel.customMinutesText = "45"
         #expect(viewModel.isCustomInputValid)
-        await viewModel.start()
+        viewModel.start()
         #expect(viewModel.isRunning)
     }
 
@@ -136,65 +113,72 @@ struct RepeatingTimerTests {
         #expect(viewModel.isCustomInputValid)
     }
 
-    @Test func tickCountsDownUsingInjectedClock() async {
+    @Test func tickCountsDownUsingInjectedClock() {
         var currentDate = Date(timeIntervalSince1970: 0)
         let viewModel = makeViewModel(now: { currentDate })
         viewModel.selectedOption = .fifteen
 
-        await viewModel.start()
+        viewModel.start()
         #expect(viewModel.timeRemaining == 15 * 60)
 
         currentDate.addTimeInterval(10)
-        await viewModel.tick()
+        viewModel.tick()
         #expect(viewModel.timeRemaining == 15 * 60 - 10)
     }
 
-    @Test func tickRollsOverToNextCycleWhenElapsed() async {
+    @Test func tickRollsOverToNextCycleWhenElapsed() {
         var currentDate = Date(timeIntervalSince1970: 0)
         let viewModel = makeViewModel(now: { currentDate })
         viewModel.selectedOption = .fifteen
 
-        await viewModel.start()
+        viewModel.start()
 
-        // Jump well past the first cycle's end.
         currentDate.addTimeInterval(15 * 60 + 20)
-        await viewModel.tick()
+        viewModel.tick()
 
         #expect(viewModel.isRunning)
         #expect(viewModel.timeRemaining == 15 * 60 - 20)
     }
 
-    @Test func tickWithoutRolloverDoesNotRescheduleReminder() async {
+    @Test func tickWithoutRolloverDoesNotShowReminder() {
         var currentDate = Date(timeIntervalSince1970: 0)
-        let scheduler = MockReminderScheduler()
-        let viewModel = makeViewModel(scheduler: scheduler, now: { currentDate })
+        let presenter = MockReminderPresenter()
+        let viewModel = makeViewModel(presenter: presenter, now: { currentDate })
         viewModel.selectedOption = .fifteen
 
-        await viewModel.start()
-        let scheduleCountAfterStart = scheduler.scheduledIntervals.count
-
+        viewModel.start()
         currentDate.addTimeInterval(10)
-        await viewModel.tick()
+        viewModel.tick()
 
-        #expect(scheduler.scheduledIntervals.count == scheduleCountAfterStart)
+        #expect(presenter.shownMinutes.isEmpty)
     }
 
-    @Test func tickRolloverSchedulesFreshReminderForNextCycle() async {
+    @Test func tickRolloverShowsReminderForActiveInterval() {
         var currentDate = Date(timeIntervalSince1970: 0)
-        let scheduler = MockReminderScheduler()
-        let viewModel = makeViewModel(scheduler: scheduler, now: { currentDate })
+        let presenter = MockReminderPresenter()
+        let viewModel = makeViewModel(presenter: presenter, now: { currentDate })
         viewModel.selectedOption = .fifteen
 
-        await viewModel.start()
-        let scheduleCountAfterStart = scheduler.scheduledIntervals.count
-
-        // Cross into the next cycle.
+        viewModel.start()
         currentDate.addTimeInterval(15 * 60 + 5)
-        await viewModel.tick()
+        viewModel.tick()
 
-        #expect(scheduler.scheduledIntervals.count == scheduleCountAfterStart + 1)
-        #expect(scheduler.scheduledIntervals.last?.seconds == viewModel.timeRemaining)
-        #expect(scheduler.scheduledIntervals.last?.minutes == 15)
+        #expect(presenter.shownMinutes == [15])
+    }
+
+    @Test func tickSkippingMultipleIntervalsShowsSingleReminder() {
+        var currentDate = Date(timeIntervalSince1970: 0)
+        let presenter = MockReminderPresenter()
+        let viewModel = makeViewModel(presenter: presenter, now: { currentDate })
+        viewModel.selectedOption = .custom
+        viewModel.customMinutesText = "1"
+
+        viewModel.start()
+        currentDate.addTimeInterval(30 * 60 + 15)
+        viewModel.tick()
+
+        #expect(presenter.shownMinutes == [1])
+        #expect(viewModel.timeRemaining == 45)
     }
 
     @Test func persistedSelectionIsRestoredOnNextLaunch() {
@@ -208,85 +192,5 @@ struct RepeatingTimerTests {
         let second = makeViewModel(defaults: store)
         #expect(second.selectedOption == .custom)
         #expect(second.customMinutesText == "20")
-    }
-
-    @Test func refreshRequestsAuthorizationWhenNotDetermined() async {
-        let scheduler = MockReminderScheduler()
-        scheduler.authorizationState = .notDetermined
-        let viewModel = makeViewModel(scheduler: scheduler)
-
-        await viewModel.refreshNotificationAuthorization()
-
-        #expect(scheduler.requestCount == 1)
-        #expect(!viewModel.isNotificationDenied)
-    }
-
-    @Test func refreshSkipsRequestWhenToldNotToAsk() async {
-        let scheduler = MockReminderScheduler()
-        scheduler.authorizationState = .notDetermined
-        let viewModel = makeViewModel(scheduler: scheduler)
-
-        await viewModel.refreshNotificationAuthorization(requestIfUndetermined: false)
-
-        #expect(scheduler.requestCount == 0)
-        #expect(!viewModel.isNotificationDenied)
-    }
-
-    @Test func refreshDoesNotRequestWhenAlreadyAuthorized() async {
-        let scheduler = MockReminderScheduler()
-        scheduler.authorizationState = .authorized
-        let viewModel = makeViewModel(scheduler: scheduler)
-
-        await viewModel.refreshNotificationAuthorization()
-
-        #expect(scheduler.requestCount == 0)
-        #expect(!viewModel.isNotificationDenied)
-    }
-
-    @Test func startDoesNotRunWhenSchedulingFails() async {
-        let scheduler = MockReminderScheduler()
-        scheduler.scheduleError = StubScheduleError()
-        let viewModel = makeViewModel(scheduler: scheduler)
-        viewModel.selectedOption = .thirty
-
-        await viewModel.start()
-
-        #expect(!viewModel.isRunning)
-        #expect(viewModel.timeRemaining == 0)
-        #expect(viewModel.scheduleErrorMessage != nil)
-        #expect(scheduler.scheduledIntervals.isEmpty)
-    }
-
-    @Test func windowAppearRefreshesWithoutRequesting() async {
-        let scheduler = MockReminderScheduler()
-        scheduler.authorizationState = .notDetermined
-        let viewModel = makeViewModel(scheduler: scheduler)
-
-        await viewModel.handleWindowAppeared()
-
-        #expect(scheduler.requestCount == 0)
-        #expect(!viewModel.isNotificationDenied)
-    }
-
-    @Test func startRequestsAuthorizationWhenNotDetermined() async {
-        let scheduler = MockReminderScheduler()
-        scheduler.authorizationState = .notDetermined
-        let viewModel = makeViewModel(scheduler: scheduler)
-
-        await viewModel.start()
-
-        #expect(scheduler.requestCount == 1)
-        #expect(viewModel.isRunning)
-    }
-
-    @Test func refreshMarksDeniedWithoutRequestingAgain() async {
-        let scheduler = MockReminderScheduler()
-        scheduler.authorizationState = .denied
-        let viewModel = makeViewModel(scheduler: scheduler)
-
-        await viewModel.refreshNotificationAuthorization()
-
-        #expect(scheduler.requestCount == 0)
-        #expect(viewModel.isNotificationDenied)
     }
 }
